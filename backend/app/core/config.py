@@ -1,23 +1,16 @@
-from pydantic_settings import BaseSettings
-from typing import List
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    APP_NAME: str = "BrizCore"
-    APP_ENV: str = "development"
-    DEBUG: bool = True
+    PROJECT_NAME: str = "BizCore"
+    API_V1_PREFIX: str = "/api/v1"
+    DATABASE_URL: str = "postgresql+psycopg2://bizcore:bizcore_pass@localhost:5432/bizcore_db"
 
-    DATABASE_URL: str
-
-    SECRET_KEY: str
-    ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
-    REFRESH_TOKEN_EXPIRE_DAYS: int = 7
-
-    CORS_ORIGINS: List[str] = ["http://localhost:5173", "http://localhost:3000"]
-
-    class Config:
-        env_file = ".env"
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
 
 
 settings = Settings()
