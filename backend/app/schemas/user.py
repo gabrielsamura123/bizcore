@@ -4,6 +4,8 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
 class UserCreate(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
     email: EmailStr
     password: str = Field(min_length=6)
     full_name: str
