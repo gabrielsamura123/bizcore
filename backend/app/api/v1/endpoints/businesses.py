@@ -8,13 +8,15 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_business, get_current_user
 from app.core.database import get_db
-from app.models import Business, BusinessMember, User
+from app.models import Business, BusinessFeature, BusinessMember, Feature, User
 from app.schemas.business import (
     BusinessCreate,
     BusinessResponse,
     BusinessUpdate,
     MyBusinessItem,
 )
+from app.schemas.feature import EnabledFeaturesResponse
+from app.scripts.seed_features import ensure_business_features
 
 router = APIRouter(prefix="/businesses", tags=["businesses"])
 
@@ -64,6 +66,7 @@ def create_business(
                 role="owner",
             )
         )
+        ensure_business_features(db, business)
         db.commit()
         db.refresh(business)
     except Exception:
@@ -86,6 +89,29 @@ def list_my_businesses(
     ).all()
 
     return [MyBusinessItem(business=business, role=role) for business, role in rows]
+
+
+@router.get("/{business_id}/features", response_model=EnabledFeaturesResponse)
+def get_business_features(
+    business: Business = Depends(get_current_business),
+    db: Session = Depends(get_db),
+):
+    ensure_business_features(db, business)
+
+    rows = db.execute(
+        select(BusinessFeature, Feature)
+        .join(Feature, BusinessFeature.feature_id == Feature.id)
+        .where(
+            BusinessFeature.business_id == business.id,
+            BusinessFeature.is_enabled.is_(True),
+        )
+        .order_by(Feature.category, Feature.name)
+    ).all()
+
+    return EnabledFeaturesResponse(
+        business_id=business.id,
+        features=[feature.key for _, feature in rows],
+    )
 
 
 @router.get("/{business_id}", response_model=BusinessResponse)

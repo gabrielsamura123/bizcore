@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Activity,
   AlertCircle,
   ArrowRight,
-  BarChart3,
+  Banknote,
   Boxes,
   CalendarDays,
   CheckCircle2,
@@ -12,13 +12,13 @@ import {
   CreditCard,
   Home,
   LayoutDashboard,
+  LayoutGrid,
+  Loader2,
   LogOut,
   Plus,
-  Settings2,
-  ShieldCheck,
+  ScanLine,
   Store,
   UserRound,
-  UsersRound,
 } from 'lucide-react'
 import api from '@/api/axios'
 import BottomTabBar from '@/components/BottomTabBar'
@@ -35,6 +35,39 @@ const STATUS_STYLES = {
   rejected: 'border-white/10 bg-white/[0.03] text-neutral-400',
 }
 
+const MODULE_CATALOG = {
+  pos_core: {
+    title: 'POS checkout',
+    description: 'Fast counter sales, receipts, and returns.',
+    icon: CreditCard,
+  },
+  inventory_basic: {
+    title: 'Inventory',
+    description: 'Stock levels, suppliers, and low-stock alerts.',
+    icon: Boxes,
+  },
+  barcode_scanner: {
+    title: 'Barcode & SKU Scanner',
+    description: 'Scan products for faster checkout and stock updates.',
+    icon: ScanLine,
+  },
+  expiry_dates: {
+    title: 'Medicine & Expiry Alerts',
+    description: 'Track perishable and medicine expiry dates before stock expires.',
+    icon: CalendarDays,
+  },
+  expenses: {
+    title: 'Expense & Cash Flow',
+    description: 'Record operating expenses and follow your cash flow.',
+    icon: Banknote,
+  },
+  tables_dining: {
+    title: 'Table Management',
+    description: 'Organize dining tables, sections, and dine-in orders.',
+    icon: LayoutGrid,
+  },
+}
+
 function titleCase(value) {
   if (!value) return '—'
   return value.charAt(0).toUpperCase() + value.slice(1)
@@ -48,6 +81,9 @@ export default function DashboardPage() {
   const [error, setError] = useState('')
   const [activeTab, setActiveTab] = useState('overview')
   const [createOpen, setCreateOpen] = useState(false)
+  const [enabledFeatures, setEnabledFeatures] = useState([])
+  const [featuresLoading, setFeaturesLoading] = useState(false)
+  const [featuresError, setFeaturesError] = useState('')
 
   const firstName = (profile?.full_name || 'there').split(' ')[0]
   const workspaceStatus = activeBusiness?.status || 'none'
@@ -69,6 +105,52 @@ export default function DashboardPage() {
       active = false
     }
   }, [])
+
+  const loadEnabledFeatures = useCallback(() => {
+    const businessId = activeBusiness?.id
+
+    if (!businessId) {
+      setEnabledFeatures([])
+      setFeaturesLoading(false)
+      return undefined
+    }
+
+    let active = true
+    setFeaturesLoading(true)
+    setFeaturesError('')
+
+    api
+      .get(`/businesses/${businessId}/features`)
+      .then(({ data }) => {
+        if (active) {
+          setEnabledFeatures(
+            Array.isArray(data?.features) ? data.features : []
+          )
+        }
+      })
+      .catch((err) => {
+        if (active) {
+          setFeaturesError(
+            err.response?.data?.detail || 'Could not load workspace modules.'
+          )
+        }
+      })
+      .finally(() => {
+        if (active) setFeaturesLoading(false)
+      })
+
+    return () => {
+      active = false
+    }
+  }, [activeBusiness?.id])
+
+  useEffect(() => loadEnabledFeatures(), [loadEnabledFeatures])
+
+  useEffect(() => {
+    const handleFocus = () => loadEnabledFeatures()
+    window.addEventListener('focus', handleFocus)
+    return () => window.removeEventListener('focus', handleFocus)
+  }, [loadEnabledFeatures])
 
   const handleLogout = () => {
     logout()
@@ -106,38 +188,13 @@ export default function DashboardPage() {
     },
   ]
 
-  const modules = [
-    {
-      title: 'POS checkout',
-      description: 'Fast counter sales, receipts, and returns.',
-      icon: CreditCard,
-    },
-    {
-      title: 'Inventory',
-      description: 'Stock levels, suppliers, and low-stock alerts.',
-      icon: Boxes,
-    },
-    {
-      title: 'Sales reports',
-      description: 'Daily takings and product performance.',
-      icon: BarChart3,
-    },
-    {
-      title: 'Customers',
-      description: 'Customer ledger and credit tracking.',
-      icon: UsersRound,
-    },
-    {
-      title: 'Staff & roles',
-      description: 'Cashier access and permission control.',
-      icon: ShieldCheck,
-    },
-    {
-      title: 'Settings',
-      description: 'Business profile, currency, and preferences.',
-      icon: Settings2,
-    },
-  ]
+  const modules = useMemo(() => {
+    if (!modulesUnlocked) return []
+
+    return enabledFeatures
+      .filter((key) => Boolean(MODULE_CATALOG[key]))
+      .map((key) => ({ key, ...MODULE_CATALOG[key] }))
+  }, [enabledFeatures, modulesUnlocked])
 
   return (
     <div className="min-h-screen bg-[#07090b] text-white">
@@ -387,9 +444,13 @@ export default function DashboardPage() {
                 Modules
               </h2>
               <p className="mt-1 text-xs text-neutral-400">
-                {modulesUnlocked
-                  ? 'Modules roll out automatically as they ship.'
-                  : 'Modules unlock after your workspace is approved.'}
+                {!modulesUnlocked
+                  ? 'Modules unlock after your workspace is approved.'
+                  : featuresLoading
+                    ? 'Loading your workspace modules...'
+                    : featuresError
+                      ? 'Could not load your workspace modules.'
+                      : 'Modules enabled for this workspace.'}
               </p>
             </div>
             <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-[11px] font-semibold text-neutral-200">
@@ -398,36 +459,55 @@ export default function DashboardPage() {
             </span>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            {modules.map((module) => {
-              const Icon = module.icon
-              return (
-                <article
-                  key={module.title}
-                  className={`card p-5 transition ${
-                    modulesUnlocked
-                      ? 'hover:border-white/30'
-                      : 'opacity-80'
-                  }`}
-                >
-                  <div className="flex items-start justify-between">
-                    <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 text-neutral-200">
-                      <Icon className="h-5 w-5" />
-                    </span>
-                    <span className="rounded-full border border-white/10 px-2 py-0.5 text-[10px] font-semibold text-neutral-400">
-                      {modulesUnlocked ? 'Coming soon' : 'Locked'}
-                    </span>
-                  </div>
-                  <h3 className="mt-4 text-sm font-bold text-white">
-                    {module.title}
-                  </h3>
-                  <p className="mt-1 text-xs leading-relaxed text-neutral-400">
-                    {module.description}
-                  </p>
-                </article>
-              )
-            })}
-          </div>
+          {modulesUnlocked && featuresLoading ? (
+            <div className="card flex items-center justify-center gap-2 p-10 text-sm text-neutral-400">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Loading modules...
+            </div>
+          ) : modulesUnlocked && featuresError ? (
+            <div className="notice">
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>{featuresError}</span>
+            </div>
+          ) : modules.length ? (
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              {modules.map((module) => {
+                const Icon = module.icon
+                return (
+                  <article
+                    key={module.key}
+                    className="card p-5 transition hover:border-white/30"
+                  >
+                    <div className="flex items-start justify-between">
+                      <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 text-neutral-200">
+                        <Icon className="h-5 w-5" />
+                      </span>
+                      <span className="rounded-full border border-white/10 px-2 py-0.5 text-[10px] font-semibold text-neutral-400">
+                        Enabled
+                      </span>
+                    </div>
+                    <h3 className="mt-4 text-sm font-bold text-white">
+                      {module.title}
+                    </h3>
+                    <p className="mt-1 text-xs leading-relaxed text-neutral-400">
+                      {module.description}
+                    </p>
+                  </article>
+                )
+              })}
+            </div>
+          ) : (
+            <div className="card p-10 text-center">
+              <p className="text-sm font-semibold text-white">
+                {modulesUnlocked ? 'No modules enabled' : 'Approval required'}
+              </p>
+              <p className="mx-auto mt-1 max-w-sm text-xs leading-relaxed text-neutral-400">
+                {modulesUnlocked
+                  ? 'An administrator has not enabled any modules for this workspace yet.'
+                  : 'Your modules will appear here once your workspace is approved.'}
+              </p>
+            </div>
+          )}
         </section>
 
         <section className="card mt-6 p-6">

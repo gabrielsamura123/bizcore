@@ -6,12 +6,19 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_active_superadmin
 from app.core.database import get_db
-from app.models import Business, User
+from app.models import Business, BusinessFeature, Feature, User
 from app.schemas.admin import (
     AdminBusinessItem,
     BusinessActionResponse,
     PlatformStats,
 )
+from app.schemas.feature import (
+    BusinessFeatureItem,
+    FeatureItem,
+    FeatureToggleRequest,
+    FeatureToggleResponse,
+)
+from app.scripts.seed_features import ensure_business_features
 
 router = APIRouter(
     prefix="/admin",
@@ -75,6 +82,111 @@ def list_platform_businesses(
     ]
 
 
+@router.get("/features", response_model=list[FeatureItem])
+def list_system_features(db: Session = Depends(get_db)):
+    return db.execute(
+        select(Feature).order_by(Feature.category, Feature.name)
+    ).scalars().all()
+
+
+def _get_business_or_404(db: Session, business_id: int) -> Business:
+    business = db.execute(
+        select(Business).where(Business.id == business_id)
+    ).scalar_one_or_none()
+    if business is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Business not found",
+        )
+    return business
+
+
+@router.get(
+    "/businesses/{business_id}/features", response_model=list[BusinessFeatureItem]
+)
+def list_business_features(business_id: int, db: Session = Depends(get_db)):
+    business = _get_business_or_404(db, business_id)
+    ensure_business_features(db, business)
+
+    features = db.execute(
+        select(Feature).order_by(Feature.category, Feature.name)
+    ).scalars().all()
+    rows = db.execute(
+        select(BusinessFeature).where(BusinessFeature.business_id == business_id)
+    ).scalars().all()
+    enabled_by_feature_id = {row.feature_id: row.is_enabled for row in rows}
+
+    return [
+        BusinessFeatureItem(
+            id=feature.id,
+            key=feature.key,
+            name=feature.name,
+            description=feature.description,
+            category=feature.category,
+            is_core=feature.is_core,
+            is_enabled=enabled_by_feature_id.get(feature.id, feature.is_core),
+        )
+        for feature in features
+    ]
+
+
+@router.post(
+    "/businesses/{business_id}/features/toggle",
+    response_model=FeatureToggleResponse,
+)
+def toggle_business_feature(
+    business_id: int,
+    payload: FeatureToggleRequest,
+    db: Session = Depends(get_db),
+):
+    business = _get_business_or_404(db, business_id)
+
+    feature = db.execute(
+        select(Feature).where(Feature.key == payload.feature_key)
+    ).scalar_one_or_none()
+    if feature is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Feature not found",
+        )
+
+    if feature.is_core and not payload.is_enabled:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Core features cannot be disabled",
+        )
+
+    row = db.execute(
+        select(BusinessFeature).where(
+            BusinessFeature.business_id == business_id,
+            BusinessFeature.feature_id == feature.id,
+        )
+    ).scalar_one_or_none()
+
+    if row is None:
+        row = BusinessFeature(
+            business_id=business_id,
+            feature_id=feature.id,
+            is_enabled=payload.is_enabled,
+        )
+        db.add(row)
+    else:
+        row.is_enabled = payload.is_enabled
+
+    try:
+        db.commit()
+        db.refresh(row)
+    except Exception:
+        db.rollback()
+        raise
+
+    return FeatureToggleResponse(
+        feature_key=feature.key,
+        is_enabled=row.is_enabled,
+        message=f"Feature {feature.name} updated",
+    )
+
+
 def _change_business_status(
     db: Session,
     business_id: int,
@@ -92,6 +204,9 @@ def _change_business_status(
         )
 
     business.status = new_status
+    if new_status == "active":
+        ensure_business_features(db, business)
+
     try:
         db.commit()
         db.refresh(business)

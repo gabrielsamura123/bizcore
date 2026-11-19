@@ -1,9 +1,25 @@
+import logging
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1.router import router as v1_router
+from app.scripts.seed_features import seed_features
 
-app = FastAPI(title="BizCore API", version="1.0.0")
+logger = logging.getLogger(__name__)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    try:
+        seed_features()
+    except Exception:
+        logger.exception("Feature seed skipped during startup")
+    yield
+
+
+app = FastAPI(title="BizCore API", version="1.0.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
