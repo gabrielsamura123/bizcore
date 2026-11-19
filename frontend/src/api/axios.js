@@ -29,6 +29,12 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
+
+    const activeBusinessId = localStorage.getItem('bizcore_active_business_id')
+    if (activeBusinessId) {
+      config.headers['X-Business-Id'] = activeBusinessId
+    }
+
     return config
   },
   (error) => Promise.reject(error)

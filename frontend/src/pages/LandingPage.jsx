@@ -8,18 +8,14 @@ import {
   Home,
   LayoutGrid,
   LogIn,
-  Moon,
   PackageSearch,
   Smartphone,
-  Sun,
   Tag,
   UserPlus,
 } from 'lucide-react'
 import BottomTabBar from '@/components/BottomTabBar'
 import DashboardPreview3D from '@/components/DashboardPreview3D'
 import Logo from '@/components/Logo'
-import ThemeToggle from '@/components/ThemeToggle'
-import { useTheme } from '@/context/ThemeContext'
 
 const features = [
   {
@@ -50,7 +46,6 @@ const features = [
 
 export default function LandingPage() {
   const [activeSection, setActiveSection] = useState('home')
-  const { isDark, toggleTheme } = useTheme()
 
   const bottomItems = [
     {
@@ -78,11 +73,6 @@ export default function LandingPage() {
       onClick: () => setActiveSection('pricing'),
     },
     {
-      label: 'Theme',
-      icon: isDark ? Sun : Moon,
-      onClick: toggleTheme,
-    },
-    {
       label: 'Log In',
       icon: LogIn,
       to: '/login',
@@ -95,39 +85,38 @@ export default function LandingPage() {
   ]
 
   return (
-    <div className="min-h-screen bg-neutral-50 pb-24 transition-colors duration-300 dark:bg-neutral-950 md:pb-0">
+    <div className="min-h-screen bg-[#07090b] pb-24 text-white md:pb-0">
       <header className="pointer-events-none fixed inset-x-0 top-5 z-50 hidden justify-center px-4 md:flex">
         <nav className="liquid-glass pointer-events-auto flex h-14 w-full max-w-5xl items-center justify-between rounded-2xl px-4 sm:px-5">
           <div className="relative z-10">
             <Logo />
           </div>
 
-          <div className="relative z-10 hidden items-center gap-8 text-sm font-medium text-neutral-600 dark:text-neutral-300 md:flex">
+          <div className="relative z-10 hidden items-center gap-8 text-sm font-medium text-neutral-300 md:flex">
             <a
               href="#features"
-              className="transition hover:text-neutral-900 dark:hover:text-white"
+              className="transition hover:text-white"
             >
               Features
             </a>
             <a
               href="#pricing"
-              className="transition hover:text-neutral-900 dark:hover:text-white"
+              className="transition hover:text-white"
             >
               Pricing
             </a>
           </div>
 
           <div className="relative z-10 flex items-center gap-2">
-            <ThemeToggle />
             <Link
               to="/login"
-              className="rounded-full border border-neutral-200/80 bg-white/60 px-3 py-2 text-sm font-semibold text-neutral-800 backdrop-blur transition hover:bg-white dark:border-white/15 dark:bg-white/5 dark:text-neutral-100 dark:hover:bg-white/10 sm:px-4"
+              className="rounded-full border border-white/15 bg-white/5 px-3 py-2 text-sm font-semibold text-neutral-100 backdrop-blur transition hover:bg-white/10 sm:px-4"
             >
               Log In
             </Link>
             <Link
               to="/register"
-              className="rounded-full bg-neutral-900 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-neutral-700 dark:bg-white dark:text-neutral-950 dark:hover:bg-neutral-200 sm:px-4"
+              className="rounded-full bg-white px-3 py-2 text-sm font-semibold text-black shadow-sm transition hover:bg-neutral-200 sm:px-4"
             >
               Get Started
             </Link>
@@ -139,22 +128,22 @@ export default function LandingPage() {
 
       <main>
         <section id="home" className="relative overflow-hidden px-5 pb-20 pt-24 sm:pt-40">
-          <div className="pointer-events-none absolute -top-32 left-1/2 h-96 w-[42rem] -translate-x-1/2 rounded-full bg-neutral-200/40 blur-3xl dark:bg-white/5" />
+          <div className="pointer-events-none absolute -top-32 left-1/2 h-96 w-[42rem] -translate-x-1/2 rounded-full bg-white/[0.05] blur-3xl" />
           <div className="relative mx-auto max-w-6xl text-center">
             <div
               data-aos="fade-down"
-              className="mb-6 inline-flex items-center gap-2 rounded-full border border-neutral-300/70 bg-white/70 px-3 py-1.5 text-xs font-semibold text-neutral-800 backdrop-blur dark:border-white/15 dark:bg-white/10 dark:text-neutral-100"
+              className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-semibold text-neutral-100 backdrop-blur"
             >
-              <span className="h-1.5 w-1.5 rounded-full bg-neutral-900 dark:bg-white" />
+              <span className="h-1.5 w-1.5 rounded-full bg-white" />
               Built for Sierra Leone businesses
             </div>
             <h1
               data-aos="fade-up"
               data-aos-delay="100"
-              className="mx-auto max-w-4xl text-4xl font-extrabold leading-[1.1] tracking-tight text-neutral-900 dark:text-white sm:text-5xl lg:text-6xl"
+              className="mx-auto max-w-4xl text-4xl font-extrabold leading-[1.1] tracking-tight text-white sm:text-5xl lg:text-6xl"
             >
               The Cloud POS Built for{' '}
-              <span className="text-neutral-500 dark:text-neutral-300">
+              <span className="text-neutral-300">
                 Sierra Leone
               </span>{' '}
               Businesses
@@ -162,7 +151,7 @@ export default function LandingPage() {
             <p
               data-aos="fade-up"
               data-aos-delay="200"
-              className="mx-auto mt-6 max-w-2xl text-base leading-relaxed text-neutral-600 dark:text-neutral-300 sm:text-lg"
+              className="mx-auto mt-6 max-w-2xl text-base leading-relaxed text-neutral-300 sm:text-lg"
             >
               Sell faster, track stock accurately, and understand your cash flow
               from one calm, reliable workspace — in the cloud and on the go.
@@ -182,7 +171,7 @@ export default function LandingPage() {
             <p
               data-aos="fade-up"
               data-aos-delay="350"
-              className="mt-4 text-xs text-neutral-500 dark:text-neutral-300"
+              className="mt-4 text-xs text-neutral-300"
             >
               No credit card required · Set up in minutes
             </p>
@@ -202,17 +191,17 @@ export default function LandingPage() {
 
         <section
           id="features"
-          className="border-y border-neutral-200/80 bg-white/60 px-5 py-20 backdrop-blur dark:border-white/10 dark:bg-black/20"
+          className="border-y border-white/10 bg-black/20 px-5 py-20 backdrop-blur"
         >
           <div className="mx-auto max-w-6xl">
             <div data-aos="fade-up" className="mx-auto max-w-2xl text-center">
-              <p className="text-sm font-semibold uppercase tracking-widest text-neutral-700 dark:text-neutral-300">
+              <p className="text-sm font-semibold uppercase tracking-widest text-neutral-300">
                 Features
               </p>
-              <h2 className="mt-3 text-3xl font-bold tracking-tight text-neutral-900 dark:text-white sm:text-4xl">
+              <h2 className="mt-3 text-3xl font-bold tracking-tight text-white sm:text-4xl">
                 Everything your business needs, nothing it doesn't
               </h2>
-              <p className="mt-4 text-neutral-600 dark:text-neutral-300">
+              <p className="mt-4 text-neutral-300">
                 Practical tools designed around how shops, supermarkets, and
                 growing businesses actually operate.
               </p>
@@ -228,13 +217,13 @@ export default function LandingPage() {
                     data-aos-delay={index * 100}
                     className="card p-6 transition duration-200 hover:-translate-y-1 hover:shadow-md"
                   >
-                    <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-neutral-900 text-white dark:bg-white dark:text-neutral-900">
+                    <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-white text-black">
                       <Icon className="h-5 w-5" />
                     </div>
-                    <h3 className="text-base font-bold text-neutral-900 dark:text-white">
+                    <h3 className="text-base font-bold text-white">
                       {feature.title}
                     </h3>
-                    <p className="mt-2 text-sm leading-relaxed text-neutral-600 dark:text-neutral-300">
+                    <p className="mt-2 text-sm leading-relaxed text-neutral-300">
                       {feature.description}
                     </p>
                   </article>
@@ -246,13 +235,13 @@ export default function LandingPage() {
 
         <section id="pricing" className="px-5 py-20">
           <div data-aos="fade-up" className="mx-auto max-w-3xl text-center">
-            <p className="text-sm font-semibold uppercase tracking-widest text-neutral-700 dark:text-neutral-300">
+            <p className="text-sm font-semibold uppercase tracking-widest text-neutral-300">
               Pricing
             </p>
-            <h2 className="mt-3 text-3xl font-bold tracking-tight text-neutral-900 dark:text-white sm:text-4xl">
+            <h2 className="mt-3 text-3xl font-bold tracking-tight text-white sm:text-4xl">
               Start free, grow when you are ready
             </h2>
-            <p className="mt-4 text-neutral-600 dark:text-neutral-300">
+            <p className="mt-4 text-neutral-300">
               Phase 1 access is open for early users. Talk to us about plans for
               multiple branches and additional team members.
             </p>
@@ -263,14 +252,14 @@ export default function LandingPage() {
         </section>
       </main>
 
-      <footer className="border-t border-neutral-200/80 py-8 dark:border-white/10">
+      <footer className="border-t border-white/10 py-8">
         <div
           data-aos="fade-up"
-          className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-5 text-sm text-neutral-500 dark:text-neutral-300 sm:flex-row"
+          className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-5 text-sm text-neutral-300 sm:flex-row"
         >
           <Logo />
           <p>Made with care for Sierra Leone businesses.</p>
-          <div className="flex items-center gap-1.5 text-neutral-800 dark:text-neutral-200">
+          <div className="flex items-center gap-1.5 text-neutral-200">
             <CheckCircle2 className="h-4 w-4" />
             Secure JWT sessions
           </div>

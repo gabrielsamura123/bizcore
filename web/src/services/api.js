@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { useAuthStore } from '@/store/authStore'
 
 const api = axios.create({
   baseURL: '/api/v1',
@@ -7,7 +8,17 @@ const api = axios.create({
   },
 })
 
-// Request interceptor — attach access token
+const publicAuthPaths = [
+  '/auth/login',
+  '/auth/register',
+  '/auth/refresh',
+  '/auth/forgot-password',
+  '/auth/reset-password',
+]
+
+const isPublicAuthRequest = (url = '') =>
+  publicAuthPaths.some((path) => url.includes(path))
+
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('access_token')
@@ -19,26 +30,40 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 )
 
-// Response interceptor — handle 401 and refresh token
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config
-    if (error.response?.status === 401 && !originalRequest._retry) {
+
+    if (
+      error.response?.status === 401 &&
+      originalRequest &&
+      !originalRequest._retry &&
+      !isPublicAuthRequest(originalRequest.url)
+    ) {
       originalRequest._retry = true
-      try {
-        const refreshToken = localStorage.getItem('refresh_token')
-        const { data } = await axios.post('/api/v1/auth/refresh', {
-          refresh_token: refreshToken,
-        })
-        localStorage.setItem('access_token', data.access_token)
-        originalRequest.headers.Authorization = `Bearer ${data.access_token}`
-        return api(originalRequest)
-      } catch {
-        localStorage.clear()
-        window.location.href = '/login'
+      const refreshToken = localStorage.getItem('refresh_token')
+
+      if (refreshToken) {
+        try {
+          const { data } = await api.post('/auth/refresh', {
+            refresh_token: refreshToken,
+          })
+          useAuthStore.getState().setTokens(data)
+          originalRequest.headers.Authorization = `Bearer ${data.access_token}`
+          return api(originalRequest)
+        } catch {
+          useAuthStore.getState().logout()
+          window.location.assign('/login')
+        }
+
+        return Promise.reject(error)
       }
+
+      useAuthStore.getState().logout()
+      window.location.assign('/login')
     }
+
     return Promise.reject(error)
   }
 )

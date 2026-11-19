@@ -1,56 +1,69 @@
-import { Banknote, Building2, WifiOff } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Banknote, Building2, ShieldCheck, WifiOff } from 'lucide-react'
 import Logo from '@/components/Logo'
 
 const benefits = [
   {
     icon: Building2,
-    title: 'Multi-Tenant Isolation',
-    description: 'Each shop stays 100% private.',
+    title: 'Multi-tenant isolation',
+    description: 'Every store keeps its own books, stock, and staff.',
   },
   {
     icon: Banknote,
-    title: 'NLe & Mobile Money Ready',
-    description: 'Redenominated currency, Orange and Africell friendly.',
+    title: 'NLe & mobile money ready',
+    description: 'Built for Sierra Leone retail and redomination.',
   },
   {
     icon: WifiOff,
-    title: 'Offline Continuity',
-    description: 'Built for low-bandwidth trading and weak connections.',
+    title: 'Offline continuity',
+    description: 'Keeps trading through weak connections.',
   },
 ]
 
 export default function AuthShowcase() {
-  return (
-    <aside className="relative hidden min-h-screen flex-col justify-between overflow-hidden border-r border-white/10 bg-neutral-950 px-10 py-10 lg:col-span-5 lg:flex xl:px-14">
-      <div className="pointer-events-none absolute -left-24 top-0 h-96 w-96 rounded-full bg-emerald-500/10 blur-3xl" />
-      <div className="pointer-events-none absolute -bottom-32 -right-20 h-96 w-96 rounded-full bg-slate-500/10 blur-3xl" />
+  const [entered, setEntered] = useState(false)
 
-      <div className="relative z-10">
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => setEntered(true))
+    return () => cancelAnimationFrame(frame)
+  }, [])
+
+  const reveal = (delay) =>
+    `transition-all duration-700 ease-out ${delay} ${
+      entered ? 'translate-y-0 opacity-100' : 'translate-y-2 opacity-90'
+    }`
+
+  return (
+    <aside className="relative hidden min-h-screen flex-col justify-between overflow-hidden border-l border-white/10 bg-[#07090b] px-8 py-10 text-neutral-100 md:col-span-5 md:flex xl:px-14">
+      <div className="pointer-events-none absolute -right-24 -top-24 h-96 w-96 rounded-full bg-white/[0.04] blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-32 -left-20 h-96 w-96 rounded-full bg-white/[0.03] blur-3xl" />
+
+      <div className={`relative z-10 ${reveal('delay-100')}`}>
         <Logo />
       </div>
 
-      <div className="relative z-10 my-auto max-w-md">
-        <h2
-          data-aos="fade-up"
-          className="text-3xl font-semibold leading-tight tracking-tight text-white xl:text-4xl"
-        >
-          The modern operating system for commerce in Sierra Leone.
+      <div className={`relative z-10 my-auto max-w-md ${reveal('delay-200')}`}>
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-neutral-400">
+          Built for Sierra Leone
+        </p>
+        <h2 className="mt-3 text-3xl font-semibold leading-tight tracking-tight text-white xl:text-4xl">
+          The operating system for modern commerce.
         </h2>
 
-        <div
-          data-aos="fade-up"
-          data-aos-delay="120"
-          className="liquid-glass mt-10 rounded-2xl p-5 shadow-2xl shadow-black/40"
-        >
-          <p className="mb-5 text-xs font-semibold uppercase tracking-[0.2em] text-neutral-400">
-            Why BizCore
-          </p>
-          <ul className="space-y-5">
+        <div className="liquid-glass mt-8 rounded-2xl p-6 shadow-2xl shadow-black/40">
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="h-4 w-4 text-neutral-300" />
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-neutral-400">
+              Why BizCore
+            </p>
+          </div>
+
+          <ul className="mt-6 space-y-5">
             {benefits.map((benefit) => {
               const Icon = benefit.icon
               return (
                 <li key={benefit.title} className="flex gap-3.5">
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-emerald-400/20 bg-emerald-500/10 text-emerald-300">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.05] text-neutral-200">
                     <Icon className="h-4 w-4" />
                   </span>
                   <div>
@@ -66,9 +79,18 @@ export default function AuthShowcase() {
             })}
           </ul>
         </div>
+
+        <div className="mt-6 flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.02] px-4 py-3">
+          <span className="h-1.5 w-1.5 rounded-full bg-neutral-300" />
+          <p className="text-xs text-neutral-400">
+            Secure platform access. No shared tenant data.
+          </p>
+        </div>
       </div>
 
-      <p className="relative z-10 text-sm text-neutral-500">
+      <p
+        className={`relative z-10 text-sm text-neutral-500 ${reveal('delay-500')}`}
+      >
         Trusted by retail, supermarkets &amp; pharmacies.
       </p>
     </aside>

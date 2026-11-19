@@ -5,6 +5,7 @@ import AOS from 'aos'
 import 'aos/dist/aos.css'
 import App from './App.jsx'
 import { AuthProvider } from '@/context/AuthContext'
+import { BusinessProvider } from '@/context/BusinessContext'
 import { ThemeProvider } from '@/context/ThemeContext'
 import './index.css'
 
@@ -21,7 +22,9 @@ createRoot(document.getElementById('root')).render(
     <ThemeProvider>
       <BrowserRouter>
         <AuthProvider>
-          <App />
+          <BusinessProvider>
+            <App />
+          </BusinessProvider>
         </AuthProvider>
       </BrowserRouter>
     </ThemeProvider>

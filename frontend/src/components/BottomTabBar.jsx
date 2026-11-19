@@ -14,13 +14,13 @@ export default function BottomTabBar({ items }) {
             <span
               className={`flex h-9 w-full items-center justify-center rounded-xl transition-colors ${
                 item.active
-                  ? 'bg-neutral-900 text-white dark:bg-white dark:text-neutral-950'
-                  : 'text-neutral-600 dark:text-neutral-300'
+                  ? 'bg-white text-black'
+                  : 'text-neutral-300'
               }`}
             >
               <Icon className="h-[18px] w-[18px]" />
             </span>
-            <span className="mt-1 text-center text-[10px] font-medium leading-none text-neutral-600 dark:text-neutral-300">
+            <span className="mt-1 text-center text-[10px] font-medium leading-none text-neutral-300">
               {item.label}
             </span>
           </>
