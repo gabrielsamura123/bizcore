@@ -17,13 +17,16 @@ import {
   LogOut,
   Plus,
   ScanLine,
+  Settings2,
   Store,
   UserRound,
+  UsersRound,
 } from 'lucide-react'
 import api from '@/api/axios'
 import BottomTabBar from '@/components/BottomTabBar'
 import CreateBusinessModal from '@/components/CreateBusinessModal'
 import Navbar from '@/components/Navbar'
+import TeamManagement from '@/components/workspace/TeamManagement'
 import { useAuth } from '@/context/AuthContext'
 import { useBusiness } from '@/context/BusinessContext'
 import { formatDate } from '@/utils/formatDate'
@@ -80,6 +83,7 @@ export default function DashboardPage() {
   const [profile, setProfile] = useState(null)
   const [error, setError] = useState('')
   const [activeTab, setActiveTab] = useState('overview')
+  const [workspaceTab, setWorkspaceTab] = useState('overview')
   const [createOpen, setCreateOpen] = useState(false)
   const [enabledFeatures, setEnabledFeatures] = useState([])
   const [featuresLoading, setFeaturesLoading] = useState(false)
@@ -88,6 +92,12 @@ export default function DashboardPage() {
   const firstName = (profile?.full_name || 'there').split(' ')[0]
   const workspaceStatus = activeBusiness?.status || 'none'
   const modulesUnlocked = workspaceStatus === 'active'
+  const restrictedWorkspaceRole =
+    userRole === 'cashier' || userRole === 'inventory'
+
+  useEffect(() => {
+    setWorkspaceTab('overview')
+  }, [activeBusiness?.id, restrictedWorkspaceRole])
 
   useEffect(() => {
     let active = true
@@ -178,6 +188,7 @@ export default function DashboardPage() {
       active: activeTab === 'workspace',
       onClick: () => {
         setActiveTab('workspace')
+        setWorkspaceTab('overview')
         scrollToSection('workspace-section')
       },
     },
@@ -195,6 +206,16 @@ export default function DashboardPage() {
       .filter((key) => Boolean(MODULE_CATALOG[key]))
       .map((key) => ({ key, ...MODULE_CATALOG[key] }))
   }, [enabledFeatures, modulesUnlocked])
+
+  const workspaceTabs = [
+    { id: 'overview', label: 'Overview', icon: LayoutDashboard },
+    ...(restrictedWorkspaceRole
+      ? []
+      : [
+          { id: 'team', label: 'Team & Staff', icon: UsersRound },
+          { id: 'settings', label: 'Settings', icon: Settings2 },
+        ]),
+  ]
 
   return (
     <div className="min-h-screen bg-[#07090b] text-white">
@@ -269,11 +290,78 @@ export default function DashboardPage() {
           </section>
         )}
 
-        <div className="grid gap-6 lg:grid-cols-3">
-          <section
+        {activeBusiness && (
+          <div
             id="workspace-section"
-            className="card p-6 lg:col-span-2"
+            className="card mb-6 flex flex-wrap gap-2 p-2"
           >
+            {workspaceTabs.map((tab) => {
+              const TabIcon = tab.icon
+              const active = workspaceTab === tab.id
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  aria-current={active ? 'page' : undefined}
+                  onClick={() => setWorkspaceTab(tab.id)}
+                  className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-semibold transition ${
+                    active
+                      ? 'bg-white text-black'
+                      : 'text-neutral-300 hover:bg-white/10 hover:text-white'
+                  }`}
+                >
+                  <TabIcon className="h-4 w-4" />
+                  {tab.label}
+                </button>
+              )
+            })}
+          </div>
+        )}
+
+        {workspaceTab === 'team' ? (
+          <TeamManagement business={activeBusiness} currentRole={userRole} />
+        ) : workspaceTab === 'settings' ? (
+          <section className="card p-6">
+            <div className="mb-5 flex items-center gap-2">
+              <Settings2 className="h-5 w-5 text-neutral-300" />
+              <div>
+                <h2 className="text-lg font-bold text-white">
+                  Store Settings
+                </h2>
+                <p className="mt-1 text-xs text-neutral-400">
+                  Business profile and workspace details.
+                </p>
+              </div>
+            </div>
+            <dl className="grid gap-3 sm:grid-cols-2">
+              {[
+                ['Business name', activeBusiness?.name],
+                ['Workspace URL', activeBusiness?.slug],
+                ['Industry', activeBusiness?.industry],
+                ['Currency', activeBusiness?.currency],
+                ['Phone', activeBusiness?.phone],
+                ['Address', activeBusiness?.address],
+                ['Status', titleCase(workspaceStatus)],
+                ['Workspace ID', activeBusiness?.id],
+              ].map(([label, value]) => (
+                <div
+                  key={label}
+                  className="rounded-xl border border-white/10 bg-white/5 p-4"
+                >
+                  <dt className="text-[11px] uppercase tracking-wider text-neutral-500">
+                    {label}
+                  </dt>
+                  <dd className="mt-1 text-sm font-semibold text-white">
+                    {value || '—'}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </section>
+        ) : (
+          <>
+            <div className="grid gap-6 lg:grid-cols-3">
+              <section className="card p-6 lg:col-span-2">
             <div className="mb-5 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Store className="h-5 w-5 text-neutral-300" />
@@ -527,6 +615,8 @@ export default function DashboardPage() {
             </p>
           </div>
         </section>
+          </>
+        )}
       </main>
 
       <CreateBusinessModal

@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from typing import Optional
 
 from fastapi import Depends, Header, HTTPException, Request, status
@@ -99,3 +100,45 @@ def get_current_business(
             )
 
     return business
+
+
+@dataclass(frozen=True)
+class BusinessAccess:
+    business: Business
+    role: str
+    user_id: int
+
+
+def require_business_roles(allowed_roles: list[str]):
+    def dependency(
+        business: Business = Depends(get_current_business),
+        current_user: User = Depends(get_current_user),
+        db: Session = Depends(get_db),
+    ) -> BusinessAccess:
+        if current_user.is_superadmin:
+            return BusinessAccess(
+                business=business,
+                role="superadmin",
+                user_id=current_user.id,
+            )
+
+        membership = db.execute(
+            select(BusinessMember).where(
+                BusinessMember.business_id == business.id,
+                BusinessMember.user_id == current_user.id,
+            )
+        ).scalar_one_or_none()
+
+        if membership is None or membership.role not in allowed_roles:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Insufficient workspace permissions",
+            )
+
+        return BusinessAccess(
+            business=business,
+            role=membership.role,
+            user_id=current_user.id,
+        )
+
+    return dependency

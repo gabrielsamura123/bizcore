@@ -7,6 +7,7 @@ from app.core.security import hash_password
 from app.models import Business, BusinessMember, User
 
 DEMO_PASSWORD = "DemoPass123!"
+DEMO_EMPLOYEE_PASSWORD = "pass123"
 
 OWNERS = [
     {
@@ -31,7 +32,7 @@ BUSINESSES = [
     {
         "name": "Lumley Fresh Mart",
         "industry": "Supermarket",
-        "status": "pending",
+        "status": "active",
         "owner_email": "kadie@lumleyfresh.sl",
         "phone": "+232 76 220 111",
         "address": "Freetown",
@@ -62,6 +63,21 @@ BUSINESSES = [
     },
 ]
 
+EMPLOYEES = [
+    {
+        "email": "cashier@lumleyfresh.sl",
+        "full_name": "Alhaji Bangura",
+        "role": "cashier",
+        "business_name": "Lumley Fresh Mart",
+    },
+    {
+        "email": "manager@bopharm.sl",
+        "full_name": "Aminata Conteh",
+        "role": "manager",
+        "business_name": "Bo Central Pharmacy",
+    },
+]
+
 
 def slugify(value: str) -> str:
     slug = re.sub(r"[^a-z0-9]+", "-", value.lower()).strip("-")
@@ -87,6 +103,7 @@ def seed() -> None:
     db = SessionLocal()
     try:
         owners_by_email = {}
+        businesses_by_name = {}
 
         for item in OWNERS:
             owner = db.execute(
@@ -154,6 +171,47 @@ def seed() -> None:
                 )
             else:
                 membership.role = "owner"
+
+            businesses_by_name[item["name"]] = business
+
+        for item in EMPLOYEES:
+            business = businesses_by_name[item["business_name"]]
+            employee = db.execute(
+                select(User).where(User.email == item["email"])
+            ).scalar_one_or_none()
+
+            if employee is None:
+                employee = User(
+                    email=item["email"],
+                    full_name=item["full_name"],
+                    hashed_password=hash_password(DEMO_EMPLOYEE_PASSWORD),
+                    is_active=True,
+                    is_superadmin=False,
+                )
+                db.add(employee)
+                db.flush()
+            else:
+                employee.full_name = item["full_name"]
+                employee.is_active = True
+                employee.is_superadmin = False
+
+            membership = db.execute(
+                select(BusinessMember).where(
+                    BusinessMember.business_id == business.id,
+                    BusinessMember.user_id == employee.id,
+                )
+            ).scalar_one_or_none()
+
+            if membership is None:
+                db.add(
+                    BusinessMember(
+                        business_id=business.id,
+                        user_id=employee.id,
+                        role=item["role"],
+                    )
+                )
+            else:
+                membership.role = item["role"]
 
         db.commit()
 

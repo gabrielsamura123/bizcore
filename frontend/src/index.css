@@ -126,6 +126,21 @@
   animation: liquid-breathe 8s ease-in-out infinite;
 }
 
+@keyframes member-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-member-in {
+  animation: member-in 0.35s ease-out;
+}
+
 @keyframes shimmer-sweep {
   0% {
     transform: translateX(-130%) skewX(-20deg);
@@ -166,6 +181,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .animate-liquid-breathe,
+  .animate-member-in,
   .btn-shimmer:hover::after {
     animation: none;
   }
