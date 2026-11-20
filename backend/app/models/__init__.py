@@ -1,6 +1,7 @@
 from app.models.business import Business
 from app.models.business_feature import BusinessFeature
 from app.models.business_member import BusinessMember
+from app.models.custom_field import CustomField
 from app.models.expense import Expense
 from app.models.feature import Feature
 from app.models.product import Product
@@ -14,6 +15,7 @@ __all__ = [
     "BusinessMember",
     "Feature",
     "BusinessFeature",
+    "CustomField",
     "Expense",
     "Product",
     "Sale",

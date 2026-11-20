@@ -1,21 +1,31 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   AlertCircle,
   ArrowLeft,
   Boxes,
+  Braces,
   Loader2,
   PackagePlus,
+  Pencil,
   Search,
   TriangleAlert,
   X,
 } from 'lucide-react'
 import api from '@/api/axios'
 import Navbar from '@/components/Navbar'
+import CustomAttributePills from '@/components/products/CustomAttributePills'
 import { useBusiness } from '@/context/BusinessContext'
 import { formatNLe } from '@/utils/money'
 
-function AddProductModal({ open, businessId, onClose, onCreated }) {
+function ProductModal({
+  open,
+  businessId,
+  product,
+  customFields,
+  onClose,
+  onSaved,
+}) {
   const [form, setForm] = useState({
     name: '',
     category: 'General',
@@ -24,21 +34,25 @@ function AddProductModal({ open, businessId, onClose, onCreated }) {
     cost_price: '',
     stock_quantity: '',
   })
+  const [attributes, setAttributes] = useState({})
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const isEditing = Boolean(product)
 
   useEffect(() => {
     if (!open) return undefined
+
     setForm({
-      name: '',
-      category: 'General',
-      sku: '',
-      price: '',
-      cost_price: '',
-      stock_quantity: '',
+      name: product?.name || '',
+      category: product?.category || 'General',
+      sku: product?.sku || '',
+      price: product ? String(product.price) : '',
+      cost_price: product ? String(product.cost_price ?? 0) : '',
+      stock_quantity: product ? String(product.stock_quantity) : '',
     })
+    setAttributes({ ...(product?.custom_attributes || {}) })
     setError('')
-  }, [open])
+  }, [open, product])
 
   useEffect(() => {
     if (!open) return undefined
@@ -54,23 +68,57 @@ function AddProductModal({ open, businessId, onClose, onCreated }) {
   const update = (field) => (event) =>
     setForm((current) => ({ ...current, [field]: event.target.value }))
 
+  const updateAttribute = (field) => (event) =>
+    setAttributes((current) => ({
+      ...current,
+      [field.field_name]: event.target.value,
+    }))
+
   const handleSubmit = async (event) => {
     event.preventDefault()
     setSubmitting(true)
     setError('')
 
     try {
-      const { data } = await api.post(`/businesses/${businessId}/products`, {
+      const nextAttributes = { ...(product?.custom_attributes || {}) }
+
+      for (const field of customFields) {
+        const rawValue = attributes[field.field_name]
+        const isEmpty = rawValue === undefined || rawValue === null || rawValue === ''
+
+        if (field.is_required && isEmpty) {
+          throw new Error(`${field.field_label} is required.`)
+        }
+
+        if (isEmpty) {
+          delete nextAttributes[field.field_name]
+          continue
+        }
+
+        nextAttributes[field.field_name] =
+          field.field_type === 'number' ? Number(rawValue) : String(rawValue).trim()
+      }
+
+      const payload = {
         name: form.name.trim(),
         category: form.category.trim() || 'General',
         sku: form.sku.trim() || null,
         price: Number(form.price),
         cost_price: form.cost_price ? Number(form.cost_price) : 0,
         stock_quantity: Number(form.stock_quantity),
-      })
-      onCreated(data)
+        custom_attributes: nextAttributes,
+      }
+
+      const { data } = isEditing
+        ? await api.put(
+            `/businesses/${businessId}/products/${product.id}`,
+            payload
+          )
+        : await api.post(`/businesses/${businessId}/products`, payload)
+
+      onSaved(data)
     } catch (err) {
-      setError(err.response?.data?.detail || 'Could not add this product.')
+      setError(err.response?.data?.detail || err.message || 'Could not save this product.')
     } finally {
       setSubmitting(false)
     }
@@ -80,7 +128,7 @@ function AddProductModal({ open, businessId, onClose, onCreated }) {
     <div className="fixed inset-0 z-[130] flex items-center justify-center p-4">
       <button
         type="button"
-        aria-label="Close add product dialog"
+        aria-label="Close product dialog"
         onClick={onClose}
         className="absolute inset-0 bg-black/75 backdrop-blur-sm"
       />
@@ -88,20 +136,26 @@ function AddProductModal({ open, businessId, onClose, onCreated }) {
         onSubmit={handleSubmit}
         role="dialog"
         aria-modal="true"
-        aria-labelledby="add-product-title"
+        aria-labelledby="product-modal-title"
         className="relative z-10 max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-white/10 bg-neutral-900/90 p-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_24px_80px_rgba(0,0,0,0.75)] backdrop-blur-2xl"
       >
         <div className="mb-6 flex items-start justify-between gap-4">
           <div className="flex items-start gap-3">
             <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-neutral-200">
-              <PackagePlus className="h-5 w-5" />
+              {isEditing ? (
+                <Pencil className="h-5 w-5" />
+              ) : (
+                <PackagePlus className="h-5 w-5" />
+              )}
             </span>
             <div>
-              <h2 id="add-product-title" className="text-lg font-bold text-white">
-                Add Product
+              <h2 id="product-modal-title" className="text-lg font-bold text-white">
+                {isEditing ? 'Edit Product' : 'Add Product'}
               </h2>
               <p className="mt-1 text-xs text-neutral-400">
-                Stock items for this store workspace.
+                {isEditing
+                  ? 'Update product details and custom values.'
+                  : 'Stock items for this store workspace.'}
               </p>
             </div>
           </div>
@@ -208,6 +262,42 @@ function AddProductModal({ open, businessId, onClose, onCreated }) {
               required
             />
           </div>
+
+          {customFields.length > 0 && (
+            <div className="sm:col-span-2 border-t border-white/10 pt-4">
+              <div className="mb-4 flex items-center gap-2">
+                <Braces className="h-4 w-4 text-neutral-300" />
+                <p className="text-xs font-bold uppercase tracking-wider text-neutral-300">
+                  Industry Fields
+                </p>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                {customFields.map((field) => (
+                  <div key={field.id}>
+                    <label
+                      htmlFor={`product-custom-${field.field_name}`}
+                      className="label"
+                    >
+                      {field.field_label}
+                      {field.is_required && (
+                        <span className="ml-1 text-neutral-300">*</span>
+                      )}
+                    </label>
+                    <input
+                      id={`product-custom-${field.field_name}`}
+                      className="input"
+                      type={field.field_type === 'number' ? 'number' : 'text'}
+                      step={field.field_type === 'number' ? 'any' : undefined}
+                      value={attributes[field.field_name] ?? ''}
+                      onChange={updateAttribute(field)}
+                      placeholder={field.field_type === 'number' ? '0' : 'Enter value'}
+                      required={field.is_required}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="mt-6 flex items-center justify-end gap-3">
@@ -221,10 +311,16 @@ function AddProductModal({ open, businessId, onClose, onCreated }) {
           >
             {submitting ? (
               <Loader2 className="h-4 w-4 animate-spin" />
+            ) : isEditing ? (
+              <Pencil className="h-4 w-4" />
             ) : (
               <PackagePlus className="h-4 w-4" />
             )}
-            {submitting ? 'Adding...' : 'Add Product'}
+            {submitting
+              ? 'Saving...'
+              : isEditing
+                ? 'Save Changes'
+                : 'Add Product'}
           </button>
         </div>
       </form>
@@ -233,12 +329,16 @@ function AddProductModal({ open, businessId, onClose, onCreated }) {
 }
 
 export default function InventoryPage() {
-  const { activeBusiness, loading: businessLoading } = useBusiness()
+  const { activeBusiness, userRole, loading: businessLoading } = useBusiness()
   const [products, setProducts] = useState([])
+  const [customFields, setCustomFields] = useState([])
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [addOpen, setAddOpen] = useState(false)
+  const [modalOpen, setModalOpen] = useState(false)
+  const [editingProduct, setEditingProduct] = useState(null)
+
+  const canManageProducts = userRole === 'owner' || userRole === 'manager'
 
   useEffect(() => {
     if (!activeBusiness?.id) return undefined
@@ -247,63 +347,45 @@ export default function InventoryPage() {
     setLoading(true)
     setError('')
 
-    api
-      .get(`/businesses/${activeBusiness.id}/products`)
-      .then(({ data }) => {
-        if (active) setProducts(Array.isArray(data) ? data : [])
-      })
-      .catch((err) => {
-        if (active) {
-          setError(err.response?.data?.detail || 'Could not load inventory.')
-        }
-      })
-      .finally(() => {
-        if (active) setLoading(false)
-      })
-
-    return () => {
-      active = false
-    }
-  }, [activeBusiness?.id])
-
-  useEffect(() => {
-    if (!activeBusiness?.id || !search.trim()) {
-      if (activeBusiness?.id && !search.trim()) {
-        let active = true
-        api
-          .get(`/businesses/${activeBusiness.id}/products`)
-          .then(({ data }) => {
-            if (active) setProducts(Array.isArray(data) ? data : [])
-          })
-          .catch(() => {})
-        return () => {
-          active = false
-        }
-      }
-      return undefined
-    }
-
-    let active = true
     const timer = setTimeout(() => {
       api
         .get(`/businesses/${activeBusiness.id}/products`, {
-          params: { search: search.trim() },
+          params: search.trim() ? { search: search.trim() } : {},
         })
         .then(({ data }) => {
           if (active) setProducts(Array.isArray(data) ? data : [])
         })
         .catch((err) => {
           if (active) {
-            setError(err.response?.data?.detail || 'Could not search products.')
+            setError(err.response?.data?.detail || 'Could not load inventory.')
           }
         })
-    }, 200)
+        .finally(() => {
+          if (active) setLoading(false)
+        })
+    }, search.trim() ? 200 : 0)
 
     return () => {
       active = false
       clearTimeout(timer)
     }
   }, [activeBusiness?.id, search])
+
+  useEffect(() => {
+    if (!activeBusiness?.id) return undefined
+
+    let active = true
+    api
+      .get(`/businesses/${activeBusiness.id}/custom-fields`)
+      .then(({ data }) => {
+        if (active) setCustomFields(Array.isArray(data) ? data : [])
+      })
+      .catch(() => {})
+
+    return () => {
+      active = false
+    }
+  }, [activeBusiness?.id])
 
   const stats = useMemo(
     () => ({
@@ -316,10 +398,26 @@ export default function InventoryPage() {
     [products]
   )
 
-  const handleCreated = (product) => {
-    setProducts((current) => [product, ...current])
-    setAddOpen(false)
+  const handleSaved = useCallback((product) => {
+    setProducts((current) => {
+      const exists = current.some((item) => item.id === product.id)
+      return exists
+        ? current.map((item) => (item.id === product.id ? product : item))
+        : [product, ...current]
+    })
+    setModalOpen(false)
+    setEditingProduct(null)
     setSearch('')
+  }, [])
+
+  const openAddModal = () => {
+    setEditingProduct(null)
+    setModalOpen(true)
+  }
+
+  const openEditModal = (product) => {
+    setEditingProduct(product)
+    setModalOpen(true)
   }
 
   return (
@@ -349,14 +447,16 @@ export default function InventoryPage() {
             <Link to="/pos" className="btn-secondary text-xs">
               Open POS Terminal
             </Link>
-            <button
-              type="button"
-              onClick={() => setAddOpen(true)}
-              className="btn-primary text-xs"
-            >
-              <PackagePlus className="h-4 w-4" />
-              Add Product
-            </button>
+            {canManageProducts && (
+              <button
+                type="button"
+                onClick={openAddModal}
+                className="btn-primary text-xs"
+              >
+                <PackagePlus className="h-4 w-4" />
+                Add Product
+              </button>
+            )}
           </div>
         </div>
 
@@ -406,7 +506,7 @@ export default function InventoryPage() {
             </div>
           ) : products.length ? (
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[800px] text-left text-sm">
+              <table className="w-full min-w-[900px] text-left text-sm">
                 <thead className="border-b border-white/10 bg-white/[0.02]">
                   <tr className="text-[11px] uppercase tracking-[0.16em] text-neutral-500">
                     <th className="px-5 py-3 font-semibold">Product</th>
@@ -414,6 +514,9 @@ export default function InventoryPage() {
                     <th className="px-5 py-3 font-semibold">Price</th>
                     <th className="px-5 py-3 font-semibold">Stock</th>
                     <th className="px-5 py-3 font-semibold">Status</th>
+                    {canManageProducts && (
+                      <th className="px-5 py-3 text-right font-semibold">Actions</th>
+                    )}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
@@ -429,6 +532,11 @@ export default function InventoryPage() {
                           <p className="mt-0.5 text-xs text-neutral-400">
                             {product.category}
                           </p>
+                          <CustomAttributePills
+                            attributes={product.custom_attributes}
+                            fields={customFields}
+                            className="mt-2"
+                          />
                         </td>
                         <td className="px-5 py-4 text-xs text-neutral-400">
                           {product.sku || '—'}
@@ -455,6 +563,18 @@ export default function InventoryPage() {
                             {out ? 'Out of stock' : low ? 'Low stock' : 'In stock'}
                           </span>
                         </td>
+                        {canManageProducts && (
+                          <td className="px-5 py-4 text-right">
+                            <button
+                              type="button"
+                              onClick={() => openEditModal(product)}
+                              className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-1.5 text-[11px] font-semibold text-neutral-300 transition hover:border-white/25 hover:text-white"
+                            >
+                              <Pencil className="h-3 w-3" />
+                              Edit
+                            </button>
+                          </td>
+                        )}
                       </tr>
                     )
                   })}
@@ -475,11 +595,16 @@ export default function InventoryPage() {
         </section>
       </main>
 
-      <AddProductModal
-        open={addOpen}
+      <ProductModal
+        open={modalOpen}
         businessId={activeBusiness?.id}
-        onClose={() => setAddOpen(false)}
-        onCreated={handleCreated}
+        product={editingProduct}
+        customFields={customFields}
+        onClose={() => {
+          setModalOpen(false)
+          setEditingProduct(null)
+        }}
+        onSaved={handleSaved}
       />
     </div>
   )

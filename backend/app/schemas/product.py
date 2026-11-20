@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional
+from typing import Any, Dict, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -13,6 +13,7 @@ class ProductBase(BaseModel):
     cost_price: float = Field(default=0, ge=0)
     stock_quantity: int = Field(default=0, ge=0)
     low_stock_threshold: int = Field(default=5, ge=0)
+    custom_attributes: Dict[str, Any] = Field(default_factory=dict)
 
 
 class ProductCreate(ProductBase):
@@ -31,6 +32,7 @@ class ProductUpdate(BaseModel):
     stock_quantity: Optional[int] = Field(default=None, ge=0)
     low_stock_threshold: Optional[int] = Field(default=None, ge=0)
     is_active: Optional[bool] = None
+    custom_attributes: Optional[Dict[str, Any]] = None
 
 
 class ProductResponse(ProductBase):

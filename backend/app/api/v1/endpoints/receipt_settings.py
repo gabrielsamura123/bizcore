@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import BusinessAccess, require_business_roles
 from app.core.database import get_db
-from app.models import ReceiptSetting
+from app.models import CustomField, ReceiptSetting
 from app.schemas.receipt import ReceiptSettingsResponse, ReceiptSettingsUpdate
 
 router = APIRouter(
@@ -62,8 +62,19 @@ def build_receipt_config(
 ) -> dict:
     config = serialize_settings(get_or_create_receipt_settings(db, business.id))
     config["business_name"] = business.name
+    config["business_industry"] = business.industry
+    config["business_address"] = business.address
     config["business_phone"] = business.phone
     config["cashier_name"] = cashier_name
+    config["custom_field_labels"] = {
+        field.field_name: field.field_label
+        for field in db.execute(
+            select(CustomField).where(
+                CustomField.business_id == business.id,
+                CustomField.entity_type == "product",
+            )
+        ).scalars().all()
+    }
     return config
 
 

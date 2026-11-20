@@ -27,6 +27,7 @@ import api from '@/api/axios'
 import BottomTabBar from '@/components/BottomTabBar'
 import CreateBusinessModal from '@/components/CreateBusinessModal'
 import Navbar from '@/components/Navbar'
+import CustomFieldManager from '@/components/workspace/CustomFieldManager'
 import ExpenseManager from '@/components/workspace/ExpenseManager'
 import FinancialOverview from '@/components/workspace/FinancialOverview'
 import SalesHistory from '@/components/workspace/SalesHistory'
@@ -381,43 +382,50 @@ export default function DashboardPage() {
         ) : workspaceTab === 'sales' ? (
           <SalesHistory businessId={activeBusiness?.id} />
         ) : workspaceTab === 'settings' ? (
-          <section className="card p-6">
-            <div className="mb-5 flex items-center gap-2">
-              <Settings2 className="h-5 w-5 text-neutral-300" />
-              <div>
-                <h2 className="text-lg font-bold text-white">
-                  Store Settings
-                </h2>
-                <p className="mt-1 text-xs text-neutral-400">
-                  Business profile and workspace details.
-                </p>
-              </div>
-            </div>
-            <dl className="grid gap-3 sm:grid-cols-2">
-              {[
-                ['Business name', activeBusiness?.name],
-                ['Workspace URL', activeBusiness?.slug],
-                ['Industry', activeBusiness?.industry],
-                ['Currency', activeBusiness?.currency],
-                ['Phone', activeBusiness?.phone],
-                ['Address', activeBusiness?.address],
-                ['Status', titleCase(workspaceStatus)],
-                ['Workspace ID', activeBusiness?.id],
-              ].map(([label, value]) => (
-                <div
-                  key={label}
-                  className="rounded-xl border border-white/10 bg-white/5 p-4"
-                >
-                  <dt className="text-[11px] uppercase tracking-wider text-neutral-500">
-                    {label}
-                  </dt>
-                  <dd className="mt-1 text-sm font-semibold text-white">
-                    {value || '—'}
-                  </dd>
+          <>
+            <section className="card p-6">
+              <div className="mb-5 flex items-center gap-2">
+                <Settings2 className="h-5 w-5 text-neutral-300" />
+                <div>
+                  <h2 className="text-lg font-bold text-white">
+                    Store Settings
+                  </h2>
+                  <p className="mt-1 text-xs text-neutral-400">
+                    Business profile and workspace details.
+                  </p>
                 </div>
-              ))}
-            </dl>
-          </section>
+              </div>
+              <dl className="grid gap-3 sm:grid-cols-2">
+                {[
+                  ['Business name', activeBusiness?.name],
+                  ['Workspace URL', activeBusiness?.slug],
+                  ['Industry', activeBusiness?.industry],
+                  ['Currency', activeBusiness?.currency],
+                  ['Phone', activeBusiness?.phone],
+                  ['Address', activeBusiness?.address],
+                  ['Status', titleCase(workspaceStatus)],
+                  ['Workspace ID', activeBusiness?.id],
+                ].map(([label, value]) => (
+                  <div
+                    key={label}
+                    className="rounded-xl border border-white/10 bg-white/5 p-4"
+                  >
+                    <dt className="text-[11px] uppercase tracking-wider text-neutral-500">
+                      {label}
+                    </dt>
+                    <dd className="mt-1 text-sm font-semibold text-white">
+                      {value || '—'}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            </section>
+            <CustomFieldManager
+              businessId={activeBusiness?.id}
+              canDelete={userRole === 'owner'}
+              disabled={!canManageFinance}
+            />
+          </>
         ) : workspaceTab === 'expenses' ? null : (
           <>
             {activeBusiness && modulesUnlocked && (

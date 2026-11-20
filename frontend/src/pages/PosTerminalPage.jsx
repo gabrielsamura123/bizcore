@@ -8,7 +8,6 @@ import {
   Minus,
   PackageOpen,
   Plus,
-  Printer,
   ReceiptText,
   Search,
   ShoppingCart,
@@ -16,7 +15,8 @@ import {
   Trash2,
 } from 'lucide-react'
 import api from '@/api/axios'
-import ReceiptPreview from '@/components/receipts/ReceiptPreview'
+import CustomAttributePills from '@/components/products/CustomAttributePills'
+import ReceiptModal from '@/components/receipts/ReceiptModal'
 import { useAuth } from '@/context/AuthContext'
 import { useBusiness } from '@/context/BusinessContext'
 import { formatNLe } from '@/utils/money'
@@ -27,49 +27,12 @@ const PAYMENT_OPTIONS = [
   { value: 'africell_money', label: 'Africell Money', icon: Smartphone },
 ]
 
-function ReceiptModal({ receipt, onNewSale }) {
-  if (!receipt) return null
-
-  return (
-    <div className="fixed inset-0 z-[140] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
-      <div className="receipt-print relative z-10 max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-white/15 bg-neutral-900/95 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_24px_80px_rgba(0,0,0,0.8)] backdrop-blur-2xl sm:p-6">
-        <div className="receipt-actions mb-4 flex items-center justify-between">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-neutral-400">
-            Payment complete
-          </p>
-          <p className="text-xs text-neutral-500">{receipt.reference_no}</p>
-        </div>
-
-        <ReceiptPreview receipt={receipt} />
-
-        <div className="receipt-actions mt-5 flex flex-col gap-2 sm:flex-row">
-          <button
-            type="button"
-            onClick={() => window.print()}
-            className="btn-secondary flex-1 text-xs"
-          >
-            <Printer className="h-4 w-4" />
-            Print Receipt
-          </button>
-          <button
-            type="button"
-            onClick={onNewSale}
-            className="btn-primary flex-1 text-xs"
-          >
-            New Sale
-          </button>
-        </div>
-      </div>
-    </div>
-  )
-}
-
 export default function PosTerminalPage() {
   const { activeBusiness, userRole, loading: businessLoading } = useBusiness()
   const { user } = useAuth()
   const searchRef = useRef(null)
   const [products, setProducts] = useState([])
+  const [customFields, setCustomFields] = useState([])
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState('All')
   const [cart, setCart] = useState({})
@@ -96,6 +59,22 @@ export default function PosTerminalPage() {
   useEffect(() => {
     fetchProducts()
   }, [fetchProducts])
+
+  useEffect(() => {
+    if (!activeBusiness?.id) return undefined
+
+    let active = true
+    api
+      .get(`/businesses/${activeBusiness.id}/custom-fields`)
+      .then(({ data }) => {
+        if (active) setCustomFields(Array.isArray(data) ? data : [])
+      })
+      .catch(() => {})
+
+    return () => {
+      active = false
+    }
+  }, [activeBusiness?.id])
 
   useEffect(() => {
     searchRef.current?.focus()
@@ -308,6 +287,12 @@ export default function PosTerminalPage() {
                       <p className="mt-2 line-clamp-2 text-sm font-bold text-white">
                         {product.name}
                       </p>
+                      <CustomAttributePills
+                        attributes={product.custom_attributes}
+                        fields={customFields}
+                        max={1}
+                        className="mt-2"
+                      />
                     </div>
                     <div className="mt-4 flex items-end justify-between gap-2">
                       <p className="text-sm font-bold text-white">
@@ -358,9 +343,17 @@ export default function PosTerminalPage() {
                   className="rounded-xl border border-white/10 bg-white/[0.03] p-3"
                 >
                   <div className="flex items-start justify-between gap-2">
-                    <p className="text-sm font-semibold text-white">
-                      {item.product.name}
-                    </p>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-white">
+                        {item.product.name}
+                      </p>
+                      <CustomAttributePills
+                        attributes={item.product.custom_attributes}
+                        fields={customFields}
+                        max={1}
+                        className="mt-1.5"
+                      />
+                    </div>
                     <button
                       type="button"
                       onClick={() => removeFromCart(item.product.id)}
@@ -485,6 +478,7 @@ export default function PosTerminalPage() {
 
       <ReceiptModal
         receipt={receipt}
+        onClose={() => setReceipt(null)}
         onNewSale={() => {
           setReceipt(null)
           searchRef.current?.focus()

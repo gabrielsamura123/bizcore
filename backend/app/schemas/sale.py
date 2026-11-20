@@ -24,6 +24,7 @@ class ReceiptItem(BaseModel):
     quantity: int
     unit_price: float
     subtotal: float
+    custom_attributes: dict[str, object] = Field(default_factory=dict)
 
 
 class SaleReceipt(BaseModel):

@@ -55,6 +55,9 @@ class SaleItem(Base):
     quantity: Mapped[int] = mapped_column(Integer, nullable=False)
     unit_price: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
     subtotal: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
+    custom_attributes: Mapped[dict] = mapped_column(
+        JSON, default=dict, nullable=False
+    )
 
     sale: Mapped["Sale"] = relationship(back_populates="items")
     product: Mapped["Product"] = relationship()

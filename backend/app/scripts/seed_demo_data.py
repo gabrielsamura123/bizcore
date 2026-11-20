@@ -5,7 +5,7 @@ from sqlalchemy import func, select
 
 from app.core.database import SessionLocal
 from app.core.security import hash_password
-from app.models import Business, BusinessMember, User
+from app.models import Business, BusinessMember, CustomField, User
 
 DEMO_PASSWORD = "DemoPass123!"
 DEMO_EMPLOYEE_PASSWORD = "pass123"
@@ -79,6 +79,38 @@ EMPLOYEES = [
         "business_name": "Bo Central Pharmacy",
     },
 ]
+
+
+INDUSTRY_CUSTOM_FIELDS = {
+    "Kissy Road Electronics": [
+        {
+            "field_name": "serial_imei",
+            "field_label": "Serial / IMEI Number",
+            "field_type": "text",
+            "is_required": False,
+        },
+        {
+            "field_name": "warranty_months",
+            "field_label": "Warranty (Months)",
+            "field_type": "number",
+            "is_required": False,
+        },
+    ],
+    "Bo Central Pharmacy": [
+        {
+            "field_name": "batch_no",
+            "field_label": "Batch Number",
+            "field_type": "text",
+            "is_required": False,
+        },
+        {
+            "field_name": "dosage_form",
+            "field_label": "Dosage / Form",
+            "field_type": "text",
+            "is_required": False,
+        },
+    ],
+}
 
 
 def slugify(value: str) -> str:
@@ -218,6 +250,33 @@ def seed() -> None:
                 )
             else:
                 membership.role = item["role"]
+
+        for business_name, fields in INDUSTRY_CUSTOM_FIELDS.items():
+            business = businesses_by_name.get(business_name)
+            if business is None:
+                continue
+
+            for item in fields:
+                field = db.execute(
+                    select(CustomField).where(
+                        CustomField.business_id == business.id,
+                        CustomField.entity_type == "product",
+                        CustomField.field_name == item["field_name"],
+                    )
+                ).scalar_one_or_none()
+
+                if field is None:
+                    db.add(
+                        CustomField(
+                            business_id=business.id,
+                            entity_type="product",
+                            **item,
+                        )
+                    )
+                else:
+                    field.field_label = item["field_label"]
+                    field.field_type = item["field_type"]
+                    field.is_required = item["is_required"]
 
         db.commit()
 

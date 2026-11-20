@@ -4,12 +4,10 @@ import {
   ChevronLeft,
   ChevronRight,
   Loader2,
-  Printer,
   ReceiptText,
-  X,
 } from 'lucide-react'
 import api from '@/api/axios'
-import ReceiptPreview from '@/components/receipts/ReceiptPreview'
+import ReceiptModal from '@/components/receipts/ReceiptModal'
 import { formatReceiptDateTime } from '@/utils/money'
 import { formatNLe } from '@/utils/money'
 import { PAYMENT_LABELS } from '@/utils/receipt'
@@ -29,76 +27,6 @@ function PaymentBadge({ method }) {
     >
       {PAYMENT_LABELS[method] || method}
     </span>
-  )
-}
-
-function ReceiptModal({ receipt, loading, error, onClose }) {
-  if (!receipt && !loading && !error) return null
-
-  return (
-    <div className="fixed inset-0 z-[140] flex items-center justify-center p-4">
-      <button
-        type="button"
-        aria-label="Close receipt"
-        onClick={onClose}
-        className="absolute inset-0 bg-black/80 backdrop-blur-sm"
-      />
-      <div className="receipt-print relative z-10 max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-white/15 bg-neutral-900/95 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_24px_80px_rgba(0,0,0,0.8)] backdrop-blur-2xl sm:p-6">
-        <div className="receipt-actions mb-4 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <ReceiptText className="h-4 w-4 text-neutral-300" />
-            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-neutral-400">
-              Receipt preview
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-lg p-1.5 text-neutral-500 transition hover:bg-white/10 hover:text-white"
-            aria-label="Close"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-
-        {loading && (
-          <div className="flex items-center justify-center gap-2 py-12 text-sm text-neutral-400">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Loading receipt...
-          </div>
-        )}
-
-        {error && !loading && (
-          <div className="notice">
-            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-            <span>{error}</span>
-          </div>
-        )}
-
-        {receipt && !loading && (
-          <>
-            <ReceiptPreview receipt={receipt} />
-            <div className="receipt-actions mt-5 flex flex-col gap-2 sm:flex-row">
-              <button
-                type="button"
-                onClick={() => window.print()}
-                className="btn-secondary flex-1 text-xs"
-              >
-                <Printer className="h-4 w-4" />
-                Print Receipt
-              </button>
-              <button
-                type="button"
-                onClick={onClose}
-                className="btn-primary flex-1 text-xs"
-              >
-                Done
-              </button>
-            </div>
-          </>
-        )}
-      </div>
-    </div>
   )
 }
 

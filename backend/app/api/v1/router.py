@@ -8,6 +8,7 @@ from app.api.v1.endpoints.admin import router as admin_router
 from app.api.v1.endpoints.analytics import router as analytics_router
 from app.api.v1.endpoints.auth import router as auth_router
 from app.api.v1.endpoints.businesses import router as businesses_router
+from app.api.v1.endpoints.custom_fields import router as custom_fields_router
 from app.api.v1.endpoints.expenses import router as expenses_router
 from app.api.v1.endpoints.members import router as members_router
 from app.api.v1.endpoints.products import router as products_router
@@ -23,6 +24,7 @@ router.include_router(members_router)
 router.include_router(products_router)
 router.include_router(receipt_settings_router)
 router.include_router(sales_router)
+router.include_router(custom_fields_router)
 router.include_router(expenses_router)
 router.include_router(analytics_router)
 router.include_router(admin_router)

@@ -103,6 +103,7 @@ def checkout(
                 quantity=quantity,
                 unit_price=float(unit_price),
                 subtotal=float(line_total),
+                custom_attributes=product.custom_attributes or {},
             )
         )
         product.stock_quantity -= quantity
@@ -112,6 +113,7 @@ def checkout(
                 quantity=quantity,
                 unit_price=float(unit_price),
                 subtotal=float(line_total),
+                custom_attributes=product.custom_attributes or {},
             )
         )
 
@@ -182,6 +184,11 @@ def get_sale_receipt(
                 quantity=item.quantity,
                 unit_price=float(item.unit_price),
                 subtotal=float(item.subtotal),
+                custom_attributes=(
+                    item.custom_attributes
+                    or (item.product.custom_attributes if item.product else {})
+                    or {}
+                ),
             )
             for item in items
         ],
