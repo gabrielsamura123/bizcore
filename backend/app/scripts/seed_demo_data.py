@@ -1,4 +1,5 @@
 import re
+from datetime import datetime, timezone
 
 from sqlalchemy import func, select
 
@@ -8,6 +9,7 @@ from app.models import Business, BusinessMember, User
 
 DEMO_PASSWORD = "DemoPass123!"
 DEMO_EMPLOYEE_PASSWORD = "pass123"
+DEMO_ACCOUNT_CREATED_AT = datetime(2024, 1, 15, 9, 0, tzinfo=timezone.utc)
 
 OWNERS = [
     {
@@ -117,6 +119,7 @@ def seed() -> None:
                     hashed_password=hash_password(DEMO_PASSWORD),
                     is_active=True,
                     is_superadmin=False,
+                    created_at=DEMO_ACCOUNT_CREATED_AT,
                 )
                 db.add(owner)
                 db.flush()
@@ -124,6 +127,7 @@ def seed() -> None:
                 owner.full_name = item["full_name"]
                 owner.is_active = True
                 owner.is_superadmin = False
+                owner.created_at = DEMO_ACCOUNT_CREATED_AT
 
             owners_by_email[item["email"]] = owner
 
@@ -187,6 +191,7 @@ def seed() -> None:
                     hashed_password=hash_password(DEMO_EMPLOYEE_PASSWORD),
                     is_active=True,
                     is_superadmin=False,
+                    created_at=DEMO_ACCOUNT_CREATED_AT,
                 )
                 db.add(employee)
                 db.flush()
@@ -194,6 +199,7 @@ def seed() -> None:
                 employee.full_name = item["full_name"]
                 employee.is_active = True
                 employee.is_superadmin = False
+                employee.created_at = DEMO_ACCOUNT_CREATED_AT
 
             membership = db.execute(
                 select(BusinessMember).where(

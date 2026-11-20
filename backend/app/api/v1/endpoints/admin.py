@@ -217,6 +217,20 @@ def _change_business_status(
     return BusinessActionResponse(message=message, business=business)
 
 
+@router.post(
+    "/businesses/bulk-approve", response_model=list[BusinessActionResponse]
+)
+def bulk_approve_businesses(
+    business_ids: list[int], db: Session = Depends(get_db)
+):
+    return [
+        _change_business_status(
+            db, business_id, "active", "Business workspace approved"
+        )
+        for business_id in business_ids
+    ]
+
+
 @router.patch(
     "/businesses/{business_id}/approve", response_model=BusinessActionResponse
 )

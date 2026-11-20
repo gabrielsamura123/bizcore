@@ -3,10 +3,14 @@ import AOS from 'aos'
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import AdminRoute from '@/components/AdminRoute'
 import ProtectedRoute from '@/components/ProtectedRoute'
+import WorkspaceActiveRoute from '@/components/WorkspaceActiveRoute'
 import AdminDashboardPage from '@/pages/AdminDashboardPage'
 import DashboardPage from '@/pages/DashboardPage'
+import InventoryPage from '@/pages/InventoryPage'
 import LandingPage from '@/pages/LandingPage'
 import LoginPage from '@/pages/LoginPage'
+import PosTerminalPage from '@/pages/PosTerminalPage'
+import ReceiptSettingsPage from '@/pages/ReceiptSettingsPage'
 import RegisterPage from '@/pages/RegisterPage'
 import { useAuth } from '@/context/AuthContext'
 
@@ -44,6 +48,11 @@ export default function App() {
       <Route path="/register" element={<RegisterPage />} />
       <Route element={<ProtectedRoute />}>
         <Route path="/dashboard" element={<DashboardPage />} />
+        <Route element={<WorkspaceActiveRoute />}>
+          <Route path="/inventory" element={<InventoryPage />} />
+          <Route path="/pos" element={<PosTerminalPage />} />
+          <Route path="/receipt-settings" element={<ReceiptSettingsPage />} />
+        </Route>
       </Route>
       <Route element={<AdminRoute />}>
         <Route path="/admin" element={<AdminDashboardPage />} />

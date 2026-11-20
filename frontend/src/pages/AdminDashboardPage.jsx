@@ -6,6 +6,7 @@ import {
   CheckCircle2,
   Clock3,
   LayoutDashboard,
+  Loader2,
   LogOut,
   MapPin,
   Menu,
@@ -97,6 +98,7 @@ export default function AdminDashboardPage() {
   const [error, setError] = useState('')
   const [toast, setToast] = useState('')
   const [actionId, setActionId] = useState(null)
+  const [bulkApproving, setBulkApproving] = useState(false)
   const [removingId, setRemovingId] = useState(null)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -147,6 +149,11 @@ export default function AdminDashboardPage() {
   const pendingBusinesses = useMemo(
     () => filteredBusinesses.filter((business) => business.status === 'pending'),
     [filteredBusinesses]
+  )
+
+  const allPendingBusinesses = useMemo(
+    () => businesses.filter((business) => business.status === 'pending'),
+    [businesses]
   )
 
   const metrics = [
@@ -243,6 +250,48 @@ export default function AdminDashboardPage() {
     } finally {
       setActionId(null)
       setRemovingId(null)
+    }
+  }
+
+  const handleBulkApprove = async () => {
+    if (!allPendingBusinesses.length) return
+
+    setBulkApproving(true)
+    setError('')
+
+    try {
+      const { data } = await api.post(
+        '/admin/businesses/bulk-approve',
+        allPendingBusinesses.map((business) => business.id)
+      )
+      const approved = new Map(
+        data.map((item) => [item.business.id, item.business])
+      )
+
+      setBusinesses((current) =>
+        current.map((item) => {
+          const next = approved.get(item.id)
+          return next
+            ? {
+                ...item,
+                ...next,
+                owner_name: item.owner_name,
+                owner_email: item.owner_email,
+              }
+            : item
+        })
+      )
+      setStats((current) =>
+        allPendingBusinesses.reduce(
+          (result) => adjustStats(result, 'pending', 'active'),
+          current
+        )
+      )
+      setToast(`${data.length} workspace${data.length === 1 ? '' : 's'} approved`)
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Could not approve pending workspaces.')
+    } finally {
+      setBulkApproving(false)
     }
   }
 
@@ -464,9 +513,26 @@ export default function AdminDashboardPage() {
                       Applications Awaiting Approval
                     </h2>
                   </div>
-                  <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-semibold text-neutral-100">
-                    {pendingBusinesses.length} queued
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-semibold text-neutral-100">
+                      {pendingBusinesses.length} queued
+                    </span>
+                    {allPendingBusinesses.length > 0 && (
+                      <button
+                        type="button"
+                        disabled={bulkApproving}
+                        onClick={handleBulkApprove}
+                        className="btn-shimmer inline-flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-xs font-bold text-black transition hover:bg-neutral-200 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {bulkApproving ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <CheckCircle2 className="h-4 w-4" />
+                        )}
+                        Approve all pending
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 {pendingBusinesses.length === 0 ? (

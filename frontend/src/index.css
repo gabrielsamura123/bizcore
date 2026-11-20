@@ -179,6 +179,137 @@
   animation: shimmer-sweep 0.9s ease-out;
 }
 
+.receipt-paper {
+  width: 100%;
+  max-width: 340px;
+  margin: 0 auto;
+  padding: 20px;
+  border-radius: 6px;
+  background: #fff;
+  color: #111;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.45;
+  text-align: center;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55);
+}
+
+.receipt-paper.paper-58mm {
+  max-width: 245px;
+  padding: 14px;
+  font-size: 10px;
+}
+
+.receipt-paper.paper-80mm {
+  max-width: 320px;
+}
+
+.receipt-paper.paper-a4 {
+  max-width: 560px;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 13px;
+}
+
+.receipt-header {
+  margin-bottom: 4px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.receipt-business {
+  font-size: 1.2em;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.receipt-muted {
+  color: #555;
+  font-size: 0.9em;
+}
+
+.receipt-rule {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed rgba(17, 17, 17, 0.35);
+}
+
+.receipt-item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+  text-align: left;
+}
+
+.receipt-item-name {
+  font-weight: 800;
+}
+
+.receipt-item-total {
+  flex-shrink: 0;
+  font-weight: 800;
+}
+
+.receipt-meta-row,
+.receipt-total {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  text-align: left;
+}
+
+.receipt-total {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(17, 17, 17, 0.5);
+  font-size: 1.1em;
+  font-weight: 900;
+}
+
+.receipt-footer {
+  font-weight: 700;
+}
+
+@page {
+  margin: 8mm;
+}
+
+@media print {
+  body * {
+    visibility: hidden !important;
+  }
+
+  .receipt-print,
+  .receipt-print * {
+    visibility: visible !important;
+  }
+
+  .receipt-print {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .receipt-actions {
+    display: none !important;
+  }
+
+  .receipt-paper {
+    margin: 0 auto;
+    border: 0;
+    box-shadow: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-liquid-breathe,
   .animate-member-in,

@@ -11,7 +11,12 @@ from app.models import (  # noqa: F401
     Business,
     BusinessFeature,
     BusinessMember,
+    Expense,
     Feature,
+    Product,
+    ReceiptSetting,
+    Sale,
+    SaleItem,
     User,
 )
 

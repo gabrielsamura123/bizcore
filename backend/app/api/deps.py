@@ -135,6 +135,19 @@ def require_business_roles(allowed_roles: list[str]):
                 detail="Insufficient workspace permissions",
             )
 
+        if business.status != "active":
+            messages = {
+                "pending": "Workspace is pending superadmin approval",
+                "suspended": "Workspace access is suspended",
+                "rejected": "Workspace access was rejected",
+            }
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=messages.get(
+                    business.status, "Workspace is not active"
+                ),
+            )
+
         return BusinessAccess(
             business=business,
             role=membership.role,

@@ -1,17 +1,21 @@
 export function formatDate(value) {
-  if (!value) return '—'
+  const fallback = new Date().toLocaleDateString('en-GB', {
+    day: '2-digit',
+    month: 'short',
+  })
+
+  if (!value) return fallback
 
   const normalized = String(value).replace(' ', 'T')
   const hasTimezone =
     normalized.endsWith('Z') || /[+-]\d{2}:\d{2}$/.test(normalized)
   const date = new Date(hasTimezone ? normalized : `${normalized}Z`)
 
-  if (Number.isNaN(date.getTime())) return '—'
+  if (Number.isNaN(date.getTime())) return fallback
 
-  return new Intl.DateTimeFormat('en-US', {
-    year: 'numeric',
+  return new Intl.DateTimeFormat('en-GB', {
+    day: '2-digit',
     month: 'short',
-    day: 'numeric',
     timeZone: 'UTC',
   }).format(date)
 }

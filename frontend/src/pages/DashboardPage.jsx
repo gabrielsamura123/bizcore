@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import {
   Activity,
   AlertCircle,
@@ -16,6 +16,7 @@ import {
   Loader2,
   LogOut,
   Plus,
+  ReceiptText,
   ScanLine,
   Settings2,
   Store,
@@ -26,6 +27,9 @@ import api from '@/api/axios'
 import BottomTabBar from '@/components/BottomTabBar'
 import CreateBusinessModal from '@/components/CreateBusinessModal'
 import Navbar from '@/components/Navbar'
+import ExpenseManager from '@/components/workspace/ExpenseManager'
+import FinancialOverview from '@/components/workspace/FinancialOverview'
+import SalesHistory from '@/components/workspace/SalesHistory'
 import TeamManagement from '@/components/workspace/TeamManagement'
 import { useAuth } from '@/context/AuthContext'
 import { useBusiness } from '@/context/BusinessContext'
@@ -43,11 +47,13 @@ const MODULE_CATALOG = {
     title: 'POS checkout',
     description: 'Fast counter sales, receipts, and returns.',
     icon: CreditCard,
+    to: '/pos',
   },
   inventory_basic: {
     title: 'Inventory',
     description: 'Stock levels, suppliers, and low-stock alerts.',
     icon: Boxes,
+    to: '/inventory',
   },
   barcode_scanner: {
     title: 'Barcode & SKU Scanner',
@@ -88,16 +94,23 @@ export default function DashboardPage() {
   const [enabledFeatures, setEnabledFeatures] = useState([])
   const [featuresLoading, setFeaturesLoading] = useState(false)
   const [featuresError, setFeaturesError] = useState('')
+  const [financialSummary, setFinancialSummary] = useState(null)
+  const [financialLoading, setFinancialLoading] = useState(false)
+  const [financialError, setFinancialError] = useState('')
+  const [expenseModalOpen, setExpenseModalOpen] = useState(false)
 
   const firstName = (profile?.full_name || 'there').split(' ')[0]
   const workspaceStatus = activeBusiness?.status || 'none'
   const modulesUnlocked = workspaceStatus === 'active'
-  const restrictedWorkspaceRole =
-    userRole === 'cashier' || userRole === 'inventory'
+  const isCashier = userRole === 'cashier'
+  const canManageFinance = userRole === 'owner' || userRole === 'manager'
+  const canViewSales = canManageFinance || isCashier
+  const canManageInventory = Boolean(userRole) && !isCashier
+  const canDesignReceipt = userRole === 'owner'
 
   useEffect(() => {
     setWorkspaceTab('overview')
-  }, [activeBusiness?.id, restrictedWorkspaceRole])
+  }, [activeBusiness?.id, userRole, modulesUnlocked])
 
   useEffect(() => {
     let active = true
@@ -162,6 +175,45 @@ export default function DashboardPage() {
     return () => window.removeEventListener('focus', handleFocus)
   }, [loadEnabledFeatures])
 
+  const loadFinancialSummary = useCallback(() => {
+    const businessId = activeBusiness?.id
+
+    if (!businessId || !modulesUnlocked || !canManageFinance) {
+      setFinancialSummary(null)
+      setFinancialLoading(false)
+      setFinancialError('')
+      return undefined
+    }
+
+    let active = true
+    setFinancialLoading(true)
+    setFinancialError('')
+
+    api
+      .get(`/businesses/${businessId}/analytics/financial-summary`, {
+        params: { period: 'today' },
+      })
+      .then(({ data }) => {
+        if (active) setFinancialSummary(data)
+      })
+      .catch((err) => {
+        if (active) {
+          setFinancialError(
+            err.response?.data?.detail || 'Could not load financial summary.'
+          )
+        }
+      })
+      .finally(() => {
+        if (active) setFinancialLoading(false)
+      })
+
+    return () => {
+      active = false
+    }
+  }, [activeBusiness?.id, modulesUnlocked, canManageFinance])
+
+  useEffect(() => loadFinancialSummary(), [loadFinancialSummary])
+
   const handleLogout = () => {
     logout()
     navigate('/login', { replace: true })
@@ -209,12 +261,18 @@ export default function DashboardPage() {
 
   const workspaceTabs = [
     { id: 'overview', label: 'Overview', icon: LayoutDashboard },
-    ...(restrictedWorkspaceRole
-      ? []
-      : [
+    ...(modulesUnlocked && canViewSales
+      ? [{ id: 'sales', label: 'Sales History', icon: ReceiptText }]
+      : []),
+    ...(canManageFinance && modulesUnlocked
+      ? [{ id: 'expenses', label: 'Expenses', icon: Banknote }]
+      : []),
+    ...(canManageFinance
+      ? [
           { id: 'team', label: 'Team & Staff', icon: UsersRound },
           { id: 'settings', label: 'Settings', icon: Settings2 },
-        ]),
+        ]
+      : []),
   ]
 
   return (
@@ -320,6 +378,8 @@ export default function DashboardPage() {
 
         {workspaceTab === 'team' ? (
           <TeamManagement business={activeBusiness} currentRole={userRole} />
+        ) : workspaceTab === 'sales' ? (
+          <SalesHistory businessId={activeBusiness?.id} />
         ) : workspaceTab === 'settings' ? (
           <section className="card p-6">
             <div className="mb-5 flex items-center gap-2">
@@ -358,8 +418,21 @@ export default function DashboardPage() {
               ))}
             </dl>
           </section>
-        ) : (
+        ) : workspaceTab === 'expenses' ? null : (
           <>
+            {activeBusiness && modulesUnlocked && (
+              <FinancialOverview
+                summary={financialSummary}
+                loading={financialLoading}
+                error={financialError}
+                showFinancials={canManageFinance}
+                canLogExpense={canManageFinance}
+                canManageInventory={canManageInventory}
+                canDesignReceipt={canDesignReceipt}
+                onLogExpense={() => setExpenseModalOpen(true)}
+              />
+            )}
+
             <div className="grid gap-6 lg:grid-cols-3">
               <section className="card p-6 lg:col-span-2">
             <div className="mb-5 flex items-center justify-between">
@@ -561,17 +634,23 @@ export default function DashboardPage() {
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
               {modules.map((module) => {
                 const Icon = module.icon
+                const CardTag = module.to ? Link : 'div'
                 return (
-                  <article
+                  <CardTag
                     key={module.key}
-                    className="card p-5 transition hover:border-white/30"
+                    {...(module.to ? { to: module.to } : {})}
+                    className={`card block w-full p-5 text-left transition ${
+                      module.to
+                        ? 'hover:-translate-y-0.5 hover:border-white/30'
+                        : 'cursor-default opacity-70'
+                    }`}
                   >
                     <div className="flex items-start justify-between">
                       <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 text-neutral-200">
                         <Icon className="h-5 w-5" />
                       </span>
                       <span className="rounded-full border border-white/10 px-2 py-0.5 text-[10px] font-semibold text-neutral-400">
-                        Enabled
+                        {module.to ? 'Open' : 'Planned'}
                       </span>
                     </div>
                     <h3 className="mt-4 text-sm font-bold text-white">
@@ -580,7 +659,7 @@ export default function DashboardPage() {
                     <p className="mt-1 text-xs leading-relaxed text-neutral-400">
                       {module.description}
                     </p>
-                  </article>
+                  </CardTag>
                 )
               })}
             </div>
@@ -618,6 +697,17 @@ export default function DashboardPage() {
           </>
         )}
       </main>
+
+      {activeBusiness && modulesUnlocked && canManageFinance && (
+        <ExpenseManager
+          businessId={activeBusiness.id}
+          canDelete={userRole === 'owner'}
+          showList={workspaceTab === 'expenses'}
+          open={expenseModalOpen}
+          onOpenChange={setExpenseModalOpen}
+          onChanged={loadFinancialSummary}
+        />
+      )}
 
       <CreateBusinessModal
         open={createOpen}
